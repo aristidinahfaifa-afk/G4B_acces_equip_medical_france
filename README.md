@@ -1,5 +1,36 @@
-# G4B_acces_equip_medical_france
-Analyse des inégalités territoriales d’accès aux soins en France à l’échelle communale, à partir des équipements de santé (BPE), des données socio-économiques (FILOSOFI) et des temps d’accès aux hôpitaux.
+## G4B_Projet Allergo-Predict : Modélisation et Prédiction du Risque Allergique à Rennes
+
+---
+### Description du projet
+Ce projet  a pour objectif d'anticiper les pics de concentration pollinique dans l'atmosphère de la ville de Rennes en s'appuyant sur les corrélations entre les conditions météorologiques et la biologie végétale. En exploitant des données historiques de haute précision (horaires), nous développons un modèle de Machine Learning capable de classifier le niveau de risque allergique pour la population.
+
+### Méthodologie et Sources de données
+Le projet repose sur la fusion de deux sources de données distinctes via l'API Open-Meteo :
+* **Données Biologiques** : Concentrations de pollen de bouleau et de graminées (exprimées en grains/$m^3$).
+* **Données Météorologiques** : Température à 2 mètres, vitesse du vent à 10 mètres et précipitations cumulées.
+
+### Construction de la Variable Cible (Target)
+La variable cible suitla logique de santé publique suivante:
+
+
+1.  **Agrégation Temporelle** : Les données horaires sont agrégées à l'échelle journalière en retenant la valeur maximale de concentration rencontrée sur 24 heures (le pic d'exposition étant le facteur déclencheur des symptômes).
+2.  **Calcul du Risque Global** : Nous calculons l'exposition maximale entre les deux taxons (Bouleau et Graminées) afin d'obtenir un indicateur de risque unique.
+3.  **Classification Clinique** : La variable est ensuite discrétisée en trois classes (0, 1 et 2). 
+
+La classification est ensuite faite en se basant sur les seuils recommandés par le **RNSA (Réseau National de Surveillance Aérobiologique)** :
+    * **Niveau 0 (Faible)** : Concentration $\leq$ 30 grains/$m^3$.
+    * **Niveau 1 (Modéré)** : Concentration comprise entre 31 et 80 grains/$m^3$.
+    * **Niveau 2 (Élevé)** : Concentration $>$ 80 grains/$m^3$. 
+
+
+### Variables Explicatives (Features)
+Pour maximiser la performance du modèle, nous utilisons :
+* Des indicateurs météorologiques directs (température, vent, pluie).
+* Des variables de saisonnalité (mois, semaine de l'année).
+* Des variables d'inertie biologique (température de la veille et moyennes glissantes sur 3 jours).
+
+---
+
 
 
 # Installation et utilisation du projet
