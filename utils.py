@@ -219,3 +219,22 @@ def sauvegarder_donnees_clean(
     df.to_csv(chemin_fichier, index=False)
 
     print(f"Données sauvegardées dans : {chemin_fichier}")
+
+def classifier_risque(valeur):
+    """Classifie le niveau de risque allergique selon les seuils RNSA.
+    
+    Paramètres
+    ----------
+    valeur : float
+        Concentration de pollen en grains/m³
+        
+    Retourne
+    -------
+    int : 0 (Faible ≤30), 1 (Modéré 31-80), 2 (Élevé >80)
+    """
+    if valeur <= 30:
+        return 0
+    elif valeur <= 80:
+        return 1
+    else:
+        return 2

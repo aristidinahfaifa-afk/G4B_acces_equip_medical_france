@@ -10,7 +10,7 @@ Le projet repose sur la fusion de deux sources de données distinctes via l'API 
 * **Données Météorologiques** : Température à 2 mètres, vitesse du vent à 10 mètres et précipitations cumulées.
 
 ### Construction de la Variable Cible (Target)
-La variable cible suitla logique de santé publique suivante:
+La variable cible suit la logique de santé publique suivante:
 
 
 1.  **Agrégation Temporelle** : Les données horaires sont agrégées à l'échelle journalière en retenant la valeur maximale de concentration rencontrée sur 24 heures (le pic d'exposition étant le facteur déclencheur des symptômes).
