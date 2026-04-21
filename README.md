@@ -14,7 +14,7 @@ Ce travail a été réalisé dans le cadre du cours de Python pour la Data Scien
 
 ##  Application en ligne
 
-L'application est déployée et accessible publiquement :
+L'application est déployée et accessible publiquement via le lien :
 
 **[PollenGuard — Accéder à l'application](https://pollenguardrennes-28c5n7eaekhhumszz8jk6r.streamlit.app/)**
 
@@ -178,9 +178,7 @@ Cette commande crée automatiquement le `.venv`, installe toutes les dépendance
 
 ### 3. Lancer le notebook
 
-```bash
-uv run jupyter lab
-```
+
 
 Ouvrir `Rapport_final.ipynb` pour reproduire l'analyse complète.
 
