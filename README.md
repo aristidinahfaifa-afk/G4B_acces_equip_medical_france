@@ -30,7 +30,7 @@ Elle permet de :
 
 ##  Contexte et problématique
 
-En France, près de **30% de la population souffre d'allergie pollinique**, un chiffre en hausse constante avec le changement climatique. Les allergènes polliniques (bouleau, graminées) provoquent des rhinites, conjonctivites et crises d'asthme dont la sévérité est directement liée à la concentration de pollen dans l'atmosphère.
+En France, près de 30% de la population souffre d'allergie pollinique, un chiffre en hausse constante avec le changement climatique. Les allergènes polliniques (bouleau, graminées) provoquent des rhinites, conjonctivites et crises d'asthme dont la sévérité est directement liée à la concentration de pollen dans l'atmosphère.
 
 **Question de recherche :**
 > Peut-on prédire le niveau de risque allergique journalier à Rennes à partir des conditions météorologiques et des concentrations polliniques récentes ?
@@ -82,7 +82,7 @@ G4B_pollenguard_rennes/
 
 ### Sources de données
 
-Toutes les données proviennent de l'**API Open-Meteo** :
+Toutes les données proviennent de l'API Open-Meteo :
 
 | Source | Variables | Granularité |
 |--------|-----------|-------------|
@@ -121,7 +121,7 @@ La variable cible est définie à partir de la concentration pollinique du lende
 | Bouleau | Random Forest Classifier | Entraînement 2021–2024 · Test 2025–2026 |
 | Graminées | Régression Logistique | Entraînement 2021–2024 · Test 2025–2026 |
 
-> Le split est **temporel** (pas aléatoire) pour simuler les conditions réelles de prévision :  on ne peut pas utiliser le futur pour entraîner un modèle de prévision.
+> Le split est temporel (pas aléatoire) pour simuler les conditions réelles de prévision :  on ne peut pas utiliser le futur pour entraîner un modèle de prévision.
 
 ---
 
@@ -202,7 +202,7 @@ Le projet utilise un système de **triple fallback** pour garantir la reproducti
 3. S3           → si l'API est indisponible (données de secours sur MinIO SSPCloud)
 ```
 
-### Ajouter une dépendance
+### Ajouter une dépendance (pour les développeurs)
 
 ```bash
 uv add nom_du_package
@@ -211,7 +211,7 @@ git commit -m "add: nom_du_package"
 git push
 ```
 
-### Mettre à jour après un `git pull`
+### Mettre à jour après un `git pull` (pour les développeurs)
 
 ```bash
 git pull
@@ -228,19 +228,19 @@ Ce projet a été réalisé par :
 - **KENNE YONTA Lesline**
 - **ROSE Valentin**
 
-Encadrants : **Julien Pramil** (TP) · **Lino Galiana** (Cours)
+Encadrants : **Julien Pramil**  · **Lino Galiana** 
 
 ---
 
 ##  Limites
 
-- Modèles entraînés sur **Rennes uniquement**, non généralisables directement à d'autres villes
-- Les données pollen de l'API Open-Meteo sont issues d'un **modèle atmosphérique**, pas de mesures terrain (contrairement au Réseau Sentinelles / RNSA)
-- L'API archive publie ses données avec **1 à 2 jours de délai**
+- Modèles entraînés sur Rennes uniquement, non généralisables directement à d'autres villes
+- Les données pollen de l'API Open-Meteo sont issues d'un modèle atmosphérique, pas de mesures terrain (contrairement au Réseau Sentinelles / RNSA)
+- L'API archive publie ses données avec 1 à 2 jours de délai
 
 ---
 
 ## Licence
 
 Projet académique — usage éducatif uniquement.  
-Données : [Open-Meteo](https://open-meteo.com/) (CC BY 4.0)
+Données : [Open-Meteo](https://open-meteo.com/) (accès libre et gratuit)
