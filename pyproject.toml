@@ -17,3 +17,6 @@ dependencies = [
     "streamlit>=1.56.0",
     "xgboost>=3.2.0",
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]
