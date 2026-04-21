@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import s3fs
 
 
 def charger_donnees_api(
@@ -53,6 +54,49 @@ def charger_donnees_api(
     df.to_csv(fichier_cache, index=False)
 
     return df
+
+
+fs = s3fs.S3FileSystem(
+    anon=True,
+    client_kwargs={"endpoint_url": "https://minio.lab.sspcloud.fr"}
+)
+
+MY_BUCKET = "lesline"
+
+
+def charger_donnees(url, params, fichier_cache, nom_s3, force_reload=False):
+    """
+    Charge des données en essayant dans cet ordre :
+      1. Cache local  → si le fichier existe déjà sur le disque
+      2. API          → si pas de cache ou force_reload=True
+      3. S3           → si l'API ne répond pas
+    """
+
+    # ── Étape 1 : Cache local 
+    if os.path.exists(fichier_cache) and not force_reload:
+        print(f"Lu depuis le cache local : {fichier_cache}")
+        return pd.read_csv(fichier_cache, parse_dates=["date"])
+
+    # ── Étape 2 : API
+    try:
+        print(f"Téléchargement depuis l'API...")
+        response = requests.get(url, params=params, timeout=30)
+        data     = response.json()
+        df       = pd.DataFrame(data["hourly"])
+        df       = df.rename(columns={"time": "date"})
+        df["date"] = pd.to_datetime(df["date"])
+        df.to_csv(fichier_cache, index=False)
+        print(f" Sauvegardé : {fichier_cache}")
+        return df
+
+    # ── Étape 3 : S3 (si l'API a échoué)
+    except Exception as e:
+        print(f"  API indisponible ({e}) → chargement depuis S3")
+        with fs.open(f"{MY_BUCKET}/diffusion/{nom_s3}", "r") as f:
+            df = pd.read_csv(f, parse_dates=["date"])
+        df.to_csv(fichier_cache, index=False)  # on sauvegarde en cache pour la suite
+        print(f" Chargé depuis S3 : {nom_s3}")
+        return df
 
 
 def identifier_plages_manquantes(df: pd.DataFrame, colonne: str) -> pd.DataFrame:
@@ -690,6 +734,7 @@ def charger_s3_modele() -> pd.DataFrame:
     try:
         import s3fs
         fs = s3fs.S3FileSystem(
+            anon=True,
             client_kwargs={"endpoint_url":"https://minio.lab.sspcloud.fr"}
         )
         with fs.open("lesline/diffusion/data_features_final_clean.csv") as f:
