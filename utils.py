@@ -240,46 +240,44 @@ def classifier_risque(valeur):
     else:
         return 2
 
-
 def construire_features(df, colonnes_pollen, date_col='date'):
     """
     Construit les variables explicatives pour la modélisation.
-
+    
     Paramètres
     ----------
     df : DataFrame source
     colonnes_pollen : list, noms des colonnes de pollen
     date_col : str, nom de la colonne date
-
+         
     Retourne
     -------
     DataFrame enrichi avec variables temporelles et retardées
     """
     df = df.copy()
-
+    
     # Variables temporelles
     df['mois'] = df[date_col].dt.month
     df['jour_annee'] = df[date_col].dt.dayofyear
-
+    
     # Variables retardées et moyenne glissante pour chaque colonne pollen
     for col in colonnes_pollen:
         for lag in [1, 2, 3]:
             df[f'{col}_lag{lag}'] = df[col].shift(lag)
         df[f'{col}_moy3j'] = df[col].rolling(3).mean()
-
+    
     df = df.dropna()
     return df
-
 
 def creer_cible_binaire(df, colonnes_pollen):
     """
     Crée une variable cible binaire pour chaque pollen.
-
+    
     Paramètres
     ----------
     df : DataFrame source
     colonnes_pollen : list, noms des colonnes de pollen
-
+    
     Retourne
     -------
     DataFrame avec nouvelles colonnes binaires (0=Faible, 1=À risque)
@@ -290,4 +288,118 @@ def creer_cible_binaire(df, colonnes_pollen):
     df = df.dropna()
     for col in colonnes_pollen:
         df[f'risque_bin_{col}_j1'] = df[f'risque_bin_{col}_j1'].astype(int)
-    return df
+    return df    
+
+
+def predire_risque(date_cible, modele_bouleau, modele_graminees, features):
+    """
+    Prédit le niveau de risque allergique pour une date donnée.
+    
+    Paramètres
+    ----------
+    date_cible : str, format 'YYYY-MM-DD'
+    modele_bouleau : modèle chargé avec joblib
+    modele_graminees : modèle chargé avec joblib
+    features : list, noms des features dans le bon ordre
+    
+    Retourne
+    -------
+    dict avec les prédictions pour bouleau et graminées
+    """
+    import requests
+    import pandas as pd
+    import numpy as np
+    from datetime import datetime, timedelta
+
+    date_cible = pd.Timestamp(date_cible)
+    date_debut = (date_cible - timedelta(days=20)).strftime('%Y-%m-%d')
+    date_fin = date_cible.strftime('%Y-%m-%d')
+
+    # Récupération météo
+    url_meteo = "https://archive-api.open-meteo.com/v1/archive"
+    params_meteo = {
+        "latitude": 48.11, "longitude": -1.67,
+        "hourly": ["temperature_2m", "precipitation", "wind_speed_10m"],
+        "start_date": date_debut, "end_date": date_fin,
+        "timezone": "Europe/Paris"
+    }
+    r_meteo = requests.get(url_meteo, params=params_meteo).json()
+    df_meteo = pd.DataFrame({
+        "date": pd.to_datetime(r_meteo["hourly"]["time"]),
+        "temperature": r_meteo["hourly"]["temperature_2m"],
+        "precipitations": r_meteo["hourly"]["precipitation"],
+        "vitesse_vent": r_meteo["hourly"]["wind_speed_10m"]
+    })
+
+    # Récupération pollen
+    url_pollen = "https://air-quality-api.open-meteo.com/v1/air-quality"
+    params_pollen = {
+        "latitude": 48.11, "longitude": -1.67,
+        "hourly": ["birch_pollen", "grass_pollen"],
+        "start_date": date_debut, "end_date": date_fin
+    }
+    r_pollen = requests.get(url_pollen, params=params_pollen).json()
+    df_pollen = pd.DataFrame({
+        "date": pd.to_datetime(r_pollen["hourly"]["time"]),
+        "pollen_bouleau": r_pollen["hourly"]["birch_pollen"],
+        "pollen_graminees": r_pollen["hourly"]["grass_pollen"]
+    })
+
+    # Fusion et agrégation journalière
+    df = pd.merge(df_pollen, df_meteo, on="date", how="inner")
+    df_jour = df.resample('D', on='date').agg(
+        pollen_bouleau=('pollen_bouleau', 'max'),
+        pollen_graminees=('pollen_graminees', 'max'),
+        temperature=('temperature', 'mean'),
+        precipitations=('precipitations', 'sum'),
+        vitesse_vent=('vitesse_vent', 'mean')
+    ).reset_index()
+
+    # Imputation NaN
+    df_jour[['pollen_bouleau', 'pollen_graminees']] = \
+        df_jour[['pollen_bouleau', 'pollen_graminees']].fillna(0)
+
+    # Construction des features
+    df_jour['jour_de_annee'] = df_jour['date'].dt.dayofyear
+    df_jour['mois'] = df_jour['date'].dt.month
+    df_jour['annee'] = df_jour['date'].dt.year
+    df_jour['saison'] = df_jour['mois'].map({
+        12:0,1:0,2:0, 3:1,4:1,5:1,
+        6:2,7:2,8:2, 9:3,10:3,11:3
+    })
+    df_jour['jour_sin'] = np.sin(2*np.pi*df_jour['jour_de_annee']/365)
+    df_jour['jour_cos'] = np.cos(2*np.pi*df_jour['jour_de_annee']/365)
+    df_jour['mois_sin'] = np.sin(2*np.pi*df_jour['mois']/12)
+    df_jour['mois_cos'] = np.cos(2*np.pi*df_jour['mois']/12)
+
+    df_jour['temp_lag1']  = df_jour['temperature'].shift(1)
+    df_jour['temp_roll7'] = df_jour['temperature'].shift(1).rolling(7).mean()
+    df_jour['precip_lag1']  = df_jour['precipitations'].shift(1)
+    df_jour['precip_lag2']  = df_jour['precipitations'].shift(2)
+    df_jour['precip_roll7'] = df_jour['precipitations'].shift(1).rolling(7).sum()
+    df_jour['vitesse_vent_lag1']  = df_jour['vitesse_vent'].shift(1)
+    df_jour['vitesse_vent_roll7'] = df_jour['vitesse_vent'].shift(1).rolling(7).mean()
+
+    df_jour['gdd_daily'] = (df_jour['temperature'] - 5).clip(lower=0)
+    df_jour['gdd_cumul'] = df_jour['gdd_daily'].cumsum()
+
+    for col in ['pollen_bouleau', 'pollen_graminees']:
+        for lag in [1, 2, 3]:
+            df_jour[f'{col}_lag{lag}'] = df_jour[col].shift(lag)
+        df_jour[f'{col}_moy3j'] = df_jour[col].shift(1).rolling(3).mean()
+
+    # Prendre la dernière ligne = jour cible
+    derniere_ligne = df_jour.dropna().iloc[[-1]]
+    X = derniere_ligne[features]
+
+    # Prédiction
+    pred_bouleau = modele_bouleau.predict(X)[0]
+    pred_graminees = modele_graminees.predict(X)[0]
+
+    labels = {0: 'Faible', 1: 'À risque'}
+
+    return {
+        "date": date_cible.strftime('%Y-%m-%d'),
+        "bouleau": labels[pred_bouleau],
+        "graminees": labels[pred_graminees]
+    }
